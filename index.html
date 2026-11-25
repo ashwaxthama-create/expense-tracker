@@ -1,0 +1,302 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PennyWise | Expense Tracker</title>
+<style>
+:root {
+  --bg:#f5f7fb; --card:#fff; --ink:#182235;
+  --muted:#7b8497; --purple:#6956d9; --border:#edf0f5;
+  --green:#159b72; --red:#e45e70;
+}
+* {box-sizing:border-box}
+body {
+  margin:0; font-family:Inter,system-ui,Arial,sans-serif;
+  background:var(--bg); color:var(--ink);
+}
+header {
+  background:#fff; border-bottom:1px solid var(--border);
+  padding:19px 5%; display:flex; justify-content:space-between;
+  align-items:center;
+}
+.logo {font-size:23px;font-weight:800;letter-spacing:-1px}
+.logo span {color:var(--purple)}
+.tag {color:var(--muted);font-size:12px}
+main {max-width:1150px;margin:35px auto;padding:0 22px}
+.top {display:flex;justify-content:space-between;align-items:center;margin-bottom:25px;gap:15px}
+h1 {font-size:27px;margin:0 0 6px}
+.subtitle {color:var(--muted);font-size:14px}
+button {
+  border:0;border-radius:9px;padding:12px 17px;
+  background:var(--purple);color:white;font-weight:650;
+  cursor:pointer;font-size:13px;
+}
+button:hover {opacity:.88}
+.cards {display:grid;grid-template-columns:repeat(3,1fr);gap:17px}
+.card {
+  background:var(--card);border:1px solid var(--border);
+  border-radius:15px;padding:21px;
+}
+.metric-label {font-size:13px;color:var(--muted)}
+.metric {font-size:28px;font-weight:800;margin:12px 0 5px}
+.metric-note {font-size:12px;color:var(--muted)}
+.income {color:var(--green)}
+.expense {color:var(--red)}
+.content {display:grid;grid-template-columns:1.5fr 1fr;gap:18px;margin-top:20px}
+.section-title {font-size:16px;font-weight:750;margin:0 0 18px}
+.toolbar {display:flex;justify-content:space-between;gap:10px;margin-bottom:14px}
+input,select {
+  background:#fff;border:1px solid var(--border);border-radius:8px;
+  padding:10px;color:var(--ink);font:inherit;min-width:0;
+}
+#search {width:55%}
+table {width:100%;border-collapse:collapse;font-size:13px}
+th {text-align:left;color:var(--muted);font-weight:550;padding:11px 6px}
+td {padding:14px 6px;border-top:1px solid var(--border)}
+.amount {font-weight:750;white-space:nowrap}
+.actions {display:flex;gap:5px}
+.small-btn {padding:6px 9px;background:#f0efff;color:var(--purple)}
+.delete {background:#fff0f1;color:var(--red)}
+.category-row {margin:17px 0}
+.category-info {display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px}
+.track {height:8px;background:#f0f1f6;border-radius:20px;overflow:hidden}
+.fill {height:100%;border-radius:20px;background:var(--purple)}
+.empty {text-align:center;padding:30px 5px;color:var(--muted);font-size:13px}
+.modal {
+  display:none;position:fixed;inset:0;background:#11182780;
+  align-items:center;justify-content:center;padding:15px;z-index:5;
+}
+.modal.open {display:flex}
+.modal-box {background:white;padding:25px;border-radius:16px;width:100%;max-width:430px}
+.modal-box h2 {margin:0 0 20px;font-size:21px}
+.field {display:grid;gap:7px;margin-bottom:14px}
+.field label {font-size:12px;color:var(--muted);font-weight:650}
+.field input,.field select {width:100%}
+.form-actions {display:flex;gap:9px;justify-content:flex-end;margin-top:20px}
+.cancel {background:#eff0f5;color:#39445a}
+footer {text-align:center;color:var(--muted);font-size:11px;padding:35px}
+@media(max-width:750px) {
+  .cards {grid-template-columns:1fr}
+  .content {grid-template-columns:1fr}
+  .top {align-items:flex-start;flex-direction:column}
+  table {font-size:11px}
+  td,th {padding:10px 3px}
+  .actions {flex-direction:column}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Penny<span>Wise.</span></div>
+  <div class="tag">PERSONAL FINANCE DASHBOARD</div>
+</header>
+
+<main>
+  <div class="top">
+    <div>
+      <h1>Good day! 👋</h1>
+      <div class="subtitle">Here's your financial overview.</div>
+    </div>
+    <button onclick="openModal()">＋ Add transaction</button>
+  </div>
+
+  <section class="cards">
+    <div class="card">
+      <div class="metric-label">Total Balance</div>
+      <div class="metric" id="balance">₹0.00</div>
+      <div class="metric-note">Income minus expenses</div>
+    </div>
+    <div class="card">
+      <div class="metric-label">Total Income</div>
+      <div class="metric income" id="income">₹0.00</div>
+      <div class="metric-note">All recorded income</div>
+    </div>
+    <div class="card">
+      <div class="metric-label">Total Expenses</div>
+      <div class="metric expense" id="expenses">₹0.00</div>
+      <div class="metric-note">All recorded spending</div>
+    </div>
+  </section>
+
+  <section class="content">
+    <div class="card">
+      <h3 class="section-title">Recent Transactions</h3>
+      <div class="toolbar">
+        <input id="search" placeholder="Search transactions..." oninput="render()">
+        <select id="filter" onchange="render()">
+          <option value="all">All types</option>
+          <option value="income">Income</option>
+          <option value="expense">Expenses</option>
+        </select>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>DETAILS</th><th>DATE</th><th>AMOUNT</th><th>ACTION</th></tr></thead>
+          <tbody id="transactions"></tbody>
+        </table>
+      </div>
+      <div id="empty" class="empty">No transactions yet. Add your first one!</div>
+    </div>
+
+    <div class="card">
+      <h3 class="section-title">Spending by Category</h3>
+      <div id="categories">
+        <div class="empty">Your spending insights will appear here.</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>PennyWise · Manage money. Make better decisions.</footer>
+
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <h2 id="modalTitle">Add transaction</h2>
+    <form id="form">
+      <div class="field">
+        <label>DESCRIPTION</label>
+        <input id="description" placeholder="e.g. Grocery shopping" required maxlength="60">
+      </div>
+      <div class="field">
+        <label>AMOUNT (₹)</label>
+        <input id="amount" type="number" min="0.01" step="0.01" placeholder="500" required>
+      </div>
+      <div class="field">
+        <label>TRANSACTION TYPE</label>
+        <select id="type">
+          <option value="expense">Expense</option>
+          <option value="income">Income</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>CATEGORY</label>
+        <select id="category">
+          <option>Food</option><option>Travel</option>
+          <option>Shopping</option><option>Bills</option>
+          <option>Health</option><option>Salary</option>
+          <option>Entertainment</option><option>Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>DATE</label>
+        <input id="date" type="date" required>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="cancel" onclick="closeModal()">Cancel</button>
+        <button type="submit">Save transaction</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+let data = JSON.parse(localStorage.getItem("pennywise-data") || "[]");
+let editId = null;
+
+const money = n => "₹" + n.toLocaleString("en-IN", {
+  minimumFractionDigits:2, maximumFractionDigits:2
+});
+
+function persist() {
+  localStorage.setItem("pennywise-data", JSON.stringify(data));
+}
+
+function render() {
+  const income = data.filter(x=>x.type==="income").reduce((s,x)=>s+x.amount,0);
+  const expenses = data.filter(x=>x.type==="expense").reduce((s,x)=>s+x.amount,0);
+
+  document.getElementById("balance").textContent=money(income-expenses);
+  document.getElementById("income").textContent=money(income);
+  document.getElementById("expenses").textContent=money(expenses);
+
+  const search=document.getElementById("search").value.toLowerCase();
+  const filter=document.getElementById("filter").value;
+  const filtered=data.filter(x=>
+    x.description.toLowerCase().includes(search) &&
+    (filter==="all" || x.type===filter)
+  ).sort((a,b)=>b.date.localeCompare(a.date));
+
+  document.getElementById("transactions").innerHTML=filtered.map(x=>`
+    <tr>
+      <td><strong>${escapeHTML(x.description)}</strong><br>
+      <span style="color:#8991a2;font-size:11px">${escapeHTML(x.category)}</span></td>
+      <td>${x.date}</td>
+      <td class="amount ${x.type}">${x.type==="income"?"+":"-"}${money(x.amount)}</td>
+      <td><div class="actions">
+        <button class="small-btn" onclick="editTransaction('${x.id}')">Edit</button>
+        <button class="small-btn delete" onclick="removeTransaction('${x.id}')">Delete</button>
+      </div></td>
+    </tr>`).join("");
+
+  document.getElementById("empty").style.display=filtered.length?"none":"block";
+
+  const groups={};
+  data.filter(x=>x.type==="expense").forEach(x=>{
+    groups[x.category]=(groups[x.category]||0)+x.amount;
+  });
+  const total=Object.values(groups).reduce((s,n)=>s+n,0);
+  document.getElementById("categories").innerHTML=total ?
+    Object.entries(groups).sort((a,b)=>b[1]-a[1]).map(([name,value])=>`
+      <div class="category-row">
+        <div class="category-info"><strong>${escapeHTML(name)}</strong><span>${money(value)}</span></div>
+        <div class="track"><div class="fill" style="width:${value/total*100}%"></div></div>
+      </div>`).join("") :
+    '<div class="empty">Your spending insights will appear here.</div>';
+}
+
+function escapeHTML(s) {
+  return String(s).replace(/[&<>"']/g,c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  })[c]);
+}
+
+function openModal() {
+  editId=null;
+  document.getElementById("form").reset();
+  document.getElementById("date").value=new Date().toISOString().slice(0,10);
+  document.getElementById("modalTitle").textContent="Add transaction";
+  document.getElementById("modal").classList.add("open");
+}
+function closeModal() {
+  document.getElementById("modal").classList.remove("open");
+}
+function editTransaction(id) {
+  const x=data.find(t=>t.id===id);
+  if(!x)return;
+  editId=id;
+  document.getElementById("description").value=x.description;
+  document.getElementById("amount").value=x.amount;
+  document.getElementById("type").value=x.type;
+  document.getElementById("category").value=x.category;
+  document.getElementById("date").value=x.date;
+  document.getElementById("modalTitle").textContent="Edit transaction";
+  document.getElementById("modal").classList.add("open");
+}
+function removeTransaction(id) {
+  if(!confirm("Delete this transaction?"))return;
+  data=data.filter(x=>x.id!==id);
+  persist();render();
+}
+
+document.getElementById("form").addEventListener("submit",e=>{
+  e.preventDefault();
+  const item={
+    id:editId || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())),
+    description:document.getElementById("description").value.trim(),
+    amount:Number(document.getElementById("amount").value),
+    type:document.getElementById("type").value,
+    category:document.getElementById("category").value,
+    date:document.getElementById("date").value
+  };
+  if(!item.description || !Number.isFinite(item.amount) || item.amount<=0 || !item.date)return;
+  if(editId) data=data.map(x=>x.id===editId?item:x);
+  else data.push(item);
+  persist();render();closeModal();
+});
+
+render();
+</script>
+</body>
+</html>
